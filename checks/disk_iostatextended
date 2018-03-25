@@ -1,0 +1,44 @@
+#!/usr/bin/python
+
+iostat_default_values = (1, 3)
+
+def inventory_disk_iostat_extended(info):
+
+  for line in info:
+    disk = line[14]
+    yield disk, "iostat_default_values"
+
+def check_disk_iostat_extended(item, params, info):
+#    print item
+    warn, crit = params
+    
+    for line in info:
+	if line[14] == item:
+	    it10=int(line[10])
+	    it11=int(line[11])
+	    it12=int(line[12])
+	    it13=int(line[13])
+	    perfdata = [ ( "sw", it10, warn, crit ) , ( "hw", it11, warn, crit ) , ( "trn", it12, warn, crit ),( "tot", it13, warn, crit ) ]
+	    message = []
+
+	    if it10 > 0:
+        	message.append("Error s/w = %d" % it10)
+	    if it11 > 0:
+        	message.append("Error h/w = %d" % it11)
+	    if it12 > 0:
+        	message.append("Error trn = %d" % it12)
+	    if it13 > 0:
+        	message.append("Error tot = %d" % it13)
+
+	    if len(message) == 0:
+        	message = ['No critical errors']
+	        return 0, "No critical errors"+'|'+"sw=%d hw=%d trn=%d tot=%d" % (it10, it11, it12, it13  )    , perfdata
+            else:    
+                return 2, ", ".join(message)+"|sw=%d hw=%d trn=%d tot=%d" % (it10, it11, it12, it13  ), perfdata
+                
+check_info["disk_iostatextended"] = {
+ 'check_function':            check_disk_iostat_extended,
+ 'inventory_function':        inventory_disk_iostat_extended,
+ 'service_description':       'Solaris iostat extended info %s',
+ 'has_perfdata':              True,
+}
